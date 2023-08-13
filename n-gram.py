@@ -75,7 +75,7 @@ class Count():
             for word in search_list:
                 if original_str[i:i + len(word)] == word:
                     result_list.append(word)
-                    i += len(word)
+                    i += 1
                     found = True
                     break
             if not found:
