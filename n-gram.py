@@ -32,8 +32,9 @@ class Count():
 
     def extract_common_ngram(self, file_paths, n):
         ngram_sets = []
-
+        ngrams_list = []
         for file_path in file_paths:
+
             with open(file_path, 'rb') as file:
                 content = file.read()
                 self.hex_values = content.hex()
@@ -42,29 +43,14 @@ class Count():
                     ngram = self.hex_values[i:i + n]
                     ngrams.append(ngram)
 
-        ngrams_list = []  # 중복을 제거한 리스트를 저장할 빈 리스트
-
-        for ngram in ngrams:
-            if ngram not in ngrams_list:
-                ngrams_list.append(ngram)
-                #ngram_sets.append(set(ngrams))
-                file_path2 = 'newngram.txt'
-                # with open(file_path2, 'w') as file:
-                #     print(ngram_sets, file=file)
+            ngrams_list.append(ngrams)
+ # 중복을 제거한 리스트를 저장할 빈 리스트
 
 
-        # 공통으로 나타나는 n-gram
-        common_ngrams = ngrams_list
+        return ngrams_list
 
-        # n-gram 빈도수
-        ngram_counts = Counter()
-        for ngrams in ngram_sets:
-            ngram_counts.update(ngrams)
 
-        # 빈도 높은 순 정렬
-        sorted_ngrams = sorted(ngram_counts.items(), key=lambda x: x[1], reverse=True)
 
-        return common_ngrams, sorted_ngrams
 
     def find_and_add_strings(self, search_list):
         result_list = []
