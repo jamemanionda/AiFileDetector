@@ -1,5 +1,5 @@
 # 이은지 작업 중~
-
+import ast
 import os
 from collections import Counter
 
@@ -8,27 +8,63 @@ class Count():
         super(Count, self).__init__()
         self.main()
 
+    def load_common(self):
+        self.data_list = []
+        self.newlist = []
+
+        # 파일 열기
+        with open('text2.txt', 'r') as file:
+            # 파일의 각 줄을 반복하여 읽기
+            for line in file:
+                # 줄의 시작과 끝의 대괄호 제거
+                cleaned_line = line.strip('')[1:-1]
+                # 쉼표로 분리
+                sub_list = cleaned_line.split(',')
+                # 메인 리스트에 추가
+                self.data_list.append(sub_list)
+
+        for a in sub_list:
+            b = a.strip('" \'')
+            self.newlist.append(b)
+
+        print(self.newlist)
+
     def is_substring(self,small, big):
         return small in big
 
 
-    def merge_lists2(self, strings):
-        merged_strings = []
-        for string in strings:
-            merge_flag = False
-            for merged_string in merged_strings:
-                if len(string) == len(merged_string) + 1 and string[1:] == merged_string:
-                    merged_strings.remove(merged_string)
-                    merged_strings.append(string)
-                    merge_flag = True
-                    break
-                elif len(string) + 1 == len(merged_string) and string == merged_string[1:]:
-                    merge_flag = True
-                    break
-            if not merge_flag:
-                merged_strings.append(string)
+    def merge_lists2(self, ngrams):
+        count = 0
+        new_list = []
+        merged_list=[]
+        one_merged_list = []
+        previous_gram = ''
+        for ngram in ngrams :
+            count2 = 0
+            for onegram in ngram :
+                previous_gram_2=''
 
-        return merged_strings
+                if count == 0:
+                    previous_gram = onegram
+                    count += 1
+                else :
+                    lengh = (len(onegram) - 1)
+                    previous_gram_2=previous_gram[-lengh:]
+                    onegram_2 = onegram[:-1]
+                    if previous_gram_2 == onegram_2:
+                        previous_gram = previous_gram+onegram[-1]
+                        count2 += 1
+                    else :
+                        previous_gram_2 = ''
+                        if count2 != 0:
+                            one_merged_list.append(previous_gram)
+                        count2 = 0
+            merged_list.append(one_merged_list)
+
+
+        return new_list
+
+
 
     def extract_common_ngram(self, file_paths, n):
         ngram_sets = []
@@ -44,31 +80,83 @@ class Count():
                     ngrams.append(ngram)
 
             ngrams_list.append(ngrams)
- # 중복을 제거한 리스트를 저장할 빈 리스트
-
 
         return ngrams_list
 
+    def find_duplicates_count(self, ngrams):
+
+        duplicates = []
+
+        element_count = {}
+
+        # 모든 리스트에서 요소의 출현 횟수를 카운트
+        for lst in ngrams:
+            for item in lst:
+                if item in element_count:
+                    element_count[item] += 1
+                else:
+                    element_count[item] = 1
+
+        # 출현 횟수가 2번 이상인 요소만을 선택
+
+        basenum = int(len(ngrams)*0.7)
+
+        result70 = [key for key, value in element_count.items() if value >= basenum]
+        result100 = [key for key, value in element_count.items() if value >= int(len(ngrams))]
+
+        #중복이 없는 교집합 리스트
+        return result100
+
+
+    def extract_2rengram(self, result):
+
+        intersection_lists =[]
+
+        for ngram in self.ngrams: #ngram은 초기에 뽑은 각 파일의 ngram
+            intersection_list = []
+            for onegram in ngram:
+                for a in result :  #중복이 없는 교집합 리스트
+                    if a in onegram:
+                        intersection_list.append(a)
+
+            intersection_lists.append(intersection_list)
 
 
 
-    def find_and_add_strings(self, search_list):
-        result_list = []
-        original_str = self.hex_values
-        i = 0  # 문자열에서 검색 시작 위치를 나타내는 인덱스
-        while i < len(original_str):
-            found = False
-            for word in search_list:
-                if original_str[i:i + len(word)] == word:
-                    result_list.append(word)
-                    i += 1
-                    found = True
-                    break
-            if not found:
-                i += 1
+        return intersection_lists
+    def longest_common_subsequence(self, s1, s2):
+        m = len(s1)
+        n = len(s2)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
 
-        return result_list
-    # 파일 경로 설정
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if s1[i - 1] == s2[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                else:
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+
+        lcs_length = dp[m][n]
+        lcs = [''] * lcs_length
+        i = m
+        j = n
+        index = lcs_length - 1
+
+        while i > 0 and j > 0:
+            if s1[i - 1] == s2[j - 1]:
+                lcs[index] = s1[i - 1]
+                i -= 1
+                j -= 1
+                index -= 1
+            elif dp[i - 1][j] > dp[i][j - 1]:
+                i -= 1
+            else:
+                j -= 1
+
+        return ''.join(lcs)
+
+
+
 
     def main(self):
 
@@ -76,6 +164,7 @@ class Count():
         self.n5gram =[]
         self.n6gram =[]
         self.n7gram=[]
+        self.ngrams = []
         # 폴더 내의 모든 파일 경로 가져오기
         file_paths = []
         for root, dirs, files in os.walk(folder_path):
@@ -85,33 +174,17 @@ class Count():
         n = 8
 
         # 공통으로 나타나는 n-gram 추출
-        common_ngrams, sorted_ngrams = self.extract_common_ngram(file_paths, n)
 
-        # 공통으로 나타나는 n-gram 출력
-        print(f"공통적으로 나타나는 {n}-gram:")
-        for ngram in common_ngrams:
-            print(ngram)
+        self.ngrams = self.extract_common_ngram(file_paths, n)
+        result=self.find_duplicates_count(self.ngrams)
+        self.ngrams = self.extract_2rengram(result)
+        common_subsequence = self.ngrams[0]
+        for i in range(1, len(self.ngrams)):
+            common_subsequence = self.longest_common_subsequence(common_subsequence, self.ngrams[i])
 
-        #빈도수가 가장 높은 n-gram 출력
-        print(f"\n빈도수가 가장 높은 {n}-gram:")
-        for ngram, count in sorted_ngrams:
-            if count > 2 :
-                #print(''.join(ngram), count)
-                pass
-        print()
+        print(common_subsequence)
 
 
-        #merged_list = self.merge_ngram_lists(self.n5gram, self.n6gram, self.n7gram)
-
-        # 결과 출력
-        # print("병합된 n-gram 리스트:")
-        # for ngram in merged_list:
-        #     if len(ngram) == 10 :
-        #         print(ngram)
-
-        common_ngrams = list(common_ngrams)
-        common_ngrams = self.find_and_add_strings(common_ngrams)
-        print(common_ngrams)
 
 
 
