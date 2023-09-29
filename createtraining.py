@@ -677,6 +677,7 @@ with tf.device('/GPU:0'):
                     root.destroy()
 
                     break
+#test
 
                 elif choice == 3:
                     self.file_paths = self.listWidget
