@@ -1,5 +1,5 @@
 # 설치
-# pip install keras-tuner
+# pip install pandas scikit-learn simhash tensorflow keras_tuner matplotlib
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -7,16 +7,13 @@ from simhash import Simhash
 from tensorflow import keras
 import numpy as np
 from sklearn.metrics import accuracy_score
-from keras.models import Sequential
-from keras.layers import GRU, Dense
-from keras.models import load_model
-from keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import GRU, Dense
+from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
-#from tensorflow.keras import layers
-#from kerastuner.tuners import RandomSearch
-#from kerastuner.engine.hyperparameters import HyperParameters
-
+from keras_tuner.tuners import RandomSearch
 
 class ForensicsDataPreprocessing:
     def preprocess_data(self, filepath, is_train=True):
@@ -55,36 +52,70 @@ class ForgeryDetectorEngine:
     def __init__(self):
         self.xgb_model = None
 
+    def build_model(self, hp):
+        """하이퍼파라미터 최적화"""
+        model = Sequential()
+
+        # GRU의 unit 수를 조정
+        units = hp.Int('units', min_value=32, max_value=512, step=32)
+
+        # 첫 번째 GRU 레이어
+        model.add(GRU(units, input_shape=(None, 1), return_sequences=True))
+        # 두 번째 GRU 레이어
+        model.add(GRU(units))
+
+        # 출력 레이어
+        model.add(Dense(4, activation='softmax'))
+
+
+        # Optimizer의 learning rate를 조정
+        lr = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+
+        model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+
+        return model
+
     def train_model(self, df):
         """훈련"""
         X = df.iloc[:, 1:-1].values
         y = df['label'].values
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
-
-        # 변환안하니까 오류나네
         y_train = pd.to_numeric(y_train, errors='coerce').astype(np.int32)
         y_test = pd.to_numeric(y_test, errors='coerce').astype(np.int32)
 
+        # 하이퍼파라미터-
+        tuner = RandomSearch(
+            self.build_model,
+            objective='val_accuracy',
+            max_trials=5,  # 최대 시도 횟수
+            executions_per_trial=3,  # 각 하이퍼파라미터 조합에 대한 시도 횟수
+            directory='random_search',
+            project_name='forgery_detection'
+        )
+        tuner.search(X_train[:, :, None], y_train, epochs=10, validation_data=(X_test[:, :, None], y_test))
 
+        # 최적의 하이퍼파라미터 + 모델을 가져오기
+        self.model = tuner.get_best_models(num_models=1)[0]
+
+
+        """ # 최적의 하이퍼파라미터 가져오면서 이부분 생략
         # 모델 구성
         self.model = Sequential()
         self.model.add(GRU(50, input_shape=(X_train.shape[1], 1), return_sequences=True))
         self.model.add(GRU(50))
         self.model.add(Dense(4, activation='softmax'))
         self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-
-
         checkpoint = ModelCheckpoint('model.h5', save_best_only=True, monitor='val_accuracy', mode='max')
         self.model.fit(X_train[:, :, None], y_train, validation_data=(X_test[:, :, None], y_test), epochs=10,
                        batch_size=32, callbacks=[checkpoint])
-
-
-
+        """
         # 성능
         loss, accuracy = self.model.evaluate(X_test[:, :, None], y_test)
         print("Model accuracy:", accuracy)
+
 
 
     def save_model(self, filename):
