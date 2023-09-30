@@ -153,7 +153,7 @@ if __name__ == "__main__":
     data_preprocessor = ForensicsDataPreprocessing()
     detector_engine = ForgeryDetectorEngine()
 
-    df_melted, _ = data_preprocessor.preprocess_data('dataset.csv', is_train=True)
+    df_melted, _ = data_preprocessor.preprocess_data('m4a_extractvalues.csv', is_train=True)
     df_melted = data_preprocessor.apply_simhash(df_melted)
     print("전처리한 값:")
     print(df_melted)
@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
 
 
-    df_test_melted, original_labels = data_preprocessor.preprocess_data('dataset-2.csv', is_train=False)
+    df_test_melted, original_labels = data_preprocessor.preprocess_data('m4a_extractvalues - 2.csv', is_train=False)
     df_test_melted = data_preprocessor.apply_simhash(df_test_melted)
 
     detector_engine.load_model('model.h5')
