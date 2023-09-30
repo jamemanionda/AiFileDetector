@@ -18,7 +18,8 @@ from keras_tuner.tuners import RandomSearch
 class ForensicsDataPreprocessing:
     def preprocess_data(self, filepath, is_train=True):
         """데이터 전처리"""
-        df = pd.read_csv(filepath, header=None)
+        df = pd.read_csv(filepath, header=None, encoding='cp949')
+
         column_count = df.shape[1]
         original_labels = None
 
@@ -63,9 +64,6 @@ class ForgeryDetectorEngine:
         model.add(GRU(units, input_shape=(None, 1), return_sequences=True))
         # 두 번째 GRU 레이어
         model.add(GRU(units))
-
-        # 출력 레이어
-        model.add(Dense(4, activation='softmax'))
 
 
         # Optimizer의 learning rate를 조정
@@ -120,11 +118,11 @@ class ForgeryDetectorEngine:
 
     def save_model(self, filename):
         """모델 저장"""
-        self.model.save(filename)
+        self.model.save(filename, include_optimizer=False)
 
     def load_model(self, filename):
         """학습 모델 로드"""
-        self.model = load_model(filename)
+        self.model = keras.models.load_model(filename, compile=False)
 
     def predict_data(self, df):
         """새 데이터 예측"""
@@ -157,40 +155,38 @@ class ForgeryDetectorEngine:
         return results, success_failure, results_df
 
 
+
 if __name__ == "__main__":
     data_preprocessor = ForensicsDataPreprocessing()
     detector_engine = ForgeryDetectorEngine()
 
-    df_melted, _ = data_preprocessor.preprocess_data('dataset.csv',  is_train=True)
+    df_melted, _ = data_preprocessor.preprocess_data('m4a_extractvalues.csv', is_train=True)
     df_melted = data_preprocessor.apply_simhash(df_melted)
     print("전처리한 값:")
     print(df_melted)
 
+
     df_melted.to_csv("result1.csv", index=False)
     detector_engine.train_model(df_melted)
-    detector_engine.save_model('model.h5')  # 모델 저장
+    detector_engine.save_model('model.h5')
 
 
 
-    #####
-
-
-    df_test_melted, original_labels = data_preprocessor.preprocess_data('dataset-2.csv', is_train=False)
+    df_test_melted, original_labels = data_preprocessor.preprocess_data('m4a_extractvalues - 2.csv', is_train=False)
     df_test_melted = data_preprocessor.apply_simhash(df_test_melted)
 
-    detector_engine.load_model('model.h5') #모델ㄹ드
-
+    detector_engine.load_model('model.h5')
     predicted_data = detector_engine.predict_data(df_test_melted)
     predicted_data.to_csv("result2.csv", index=False)
 
 
 
+
+
+
     results, success_failure, results_df = detector_engine.analyze_prediction(predicted_data, original_labels)
-
-
     print(success_failure)
     print(results_df)
-
 
     total = len(results_df)
     success = sum([1 for row in success_failure.values() if "예측 성공" in row])
